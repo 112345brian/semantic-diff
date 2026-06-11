@@ -54,12 +54,12 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   )
 
-  // Track whether a semantic-stage editor is active so editor/title buttons
+  // Track whether a semantic-diff editor is active so editor/title buttons
   // can use a reliable when-condition.
   const setDiffContext = (editor: vscode.TextEditor | undefined) => {
     void vscode.commands.executeCommand(
       "setContext",
-      "semanticStage.diffActive",
+      "semanticDiff.diffActive",
       editor?.document.uri.scheme === SCHEME
     )
   }
@@ -103,26 +103,26 @@ export function activate(context: vscode.ExtensionContext): void {
   )
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("semanticStage.openDiff", (arg?: unknown) =>
+    vscode.commands.registerCommand("semanticDiff.openDiff", (arg?: unknown) =>
       openSemanticDiff(store, arg)
     ),
-    vscode.commands.registerCommand("semanticStage.stageHunk", () => stageHunkAtCursor(store)),
-    vscode.commands.registerCommand("semanticStage.stageAll", (arg?: unknown) =>
+    vscode.commands.registerCommand("semanticDiff.stageHunk", () => stageHunkAtCursor(store)),
+    vscode.commands.registerCommand("semanticDiff.stageAll", (arg?: unknown) =>
       stageAll(store, arg)
     ),
-    vscode.commands.registerCommand("semanticStage.stageAllFiles", () => stageAllFiles(store)),
-    vscode.commands.registerCommand("semanticStage.nextChange", () => navigateChange(store, 1)),
-    vscode.commands.registerCommand("semanticStage.prevChange", () => navigateChange(store, -1)),
-    vscode.commands.registerCommand("semanticStage.toggleProjection", () =>
+    vscode.commands.registerCommand("semanticDiff.stageAllFiles", () => stageAllFiles(store)),
+    vscode.commands.registerCommand("semanticDiff.nextChange", () => navigateChange(store, 1)),
+    vscode.commands.registerCommand("semanticDiff.prevChange", () => navigateChange(store, -1)),
+    vscode.commands.registerCommand("semanticDiff.toggleProjection", () =>
       toggleProjection(store)
     ),
     // Internal commands used by CodeLens.
     vscode.commands.registerCommand(
-      "semanticStage.stageClause",
+      "semanticDiff.stageClause",
       (filePath: string, changeId: string) => stageClause(store, filePath, changeId)
     ),
     vscode.commands.registerCommand(
-      "semanticStage.ignoreClause",
+      "semanticDiff.ignoreClause",
       (filePath: string, changeId: string) => {
         store.get(filePath)?.setIgnored(changeId, true)
         codeLensProvider.refresh()
@@ -130,42 +130,42 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     ),
     vscode.commands.registerCommand(
-      "semanticStage.unignoreClause",
+      "semanticDiff.unignoreClause",
       (filePath: string, changeId: string) => {
         store.get(filePath)?.setIgnored(changeId, false)
         codeLensProvider.refresh()
         decorations.refreshAll()
       }
     ),
-    vscode.commands.registerCommand("semanticStage.showRaw", (filePath: string) =>
+    vscode.commands.registerCommand("semanticDiff.showRaw", (filePath: string) =>
       showRaw(store, filePath)
     ),
-    vscode.commands.registerCommand("semanticStage.openHistoricalDiff", (arg?: unknown) =>
+    vscode.commands.registerCommand("semanticDiff.openHistoricalDiff", (arg?: unknown) =>
       openHistoricalDiff(store, arg)
     ),
-    vscode.commands.registerCommand("semanticStage.openBookDiff", () => openBookDiff(store)),
-    vscode.commands.registerCommand("semanticStage.toggleSplitPane", () => toggleSplitPane()),
-    vscode.commands.registerCommand("semanticStage.toggleClauseNumbers", () => {
+    vscode.commands.registerCommand("semanticDiff.openBookDiff", () => openBookDiff(store)),
+    vscode.commands.registerCommand("semanticDiff.toggleSplitPane", () => toggleSplitPane()),
+    vscode.commands.registerCommand("semanticDiff.toggleClauseNumbers", () => {
       const editor = vscode.window.activeTextEditor
       if (!editor || editor.document.uri.scheme !== "file") {
-        vscode.window.showWarningMessage("Semantic Stage: open the original file to toggle clause numbers.")
+        vscode.window.showWarningMessage("Semantic Diff: open the original file to toggle clause numbers.")
         return
       }
       const filePath = editor.document.uri.fsPath
       clauseNumbers.toggle(filePath)
       vscode.window.setStatusBarMessage(
         clauseNumbers.isEnabled(filePath)
-          ? "Semantic Stage: clause numbers on"
-          : "Semantic Stage: clause numbers off",
+          ? "Semantic Diff: clause numbers on"
+          : "Semantic Diff: clause numbers off",
         2500
       )
     }),
     vscode.commands.registerCommand(
-      "semanticStage.stageMove",
+      "semanticDiff.stageMove",
       (filePath: string, moveId: string) => stageMove(store, filePath, moveId)
     ),
     vscode.commands.registerCommand(
-      "semanticStage.splitMove",
+      "semanticDiff.splitMove",
       (filePath: string, moveId: string) => {
         store.get(filePath)?.splitMove(moveId)
         codeLensProvider.refresh()
@@ -173,7 +173,7 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     ),
     vscode.commands.registerCommand(
-      "semanticStage.ignoreMove",
+      "semanticDiff.ignoreMove",
       (filePath: string, moveId: string) => {
         store.get(filePath)?.ignoreBothInMove(moveId, true)
         codeLensProvider.refresh()
@@ -181,7 +181,7 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     ),
     vscode.commands.registerCommand(
-      "semanticStage.unignoreMove",
+      "semanticDiff.unignoreMove",
       (filePath: string, moveId: string) => {
         store.get(filePath)?.ignoreBothInMove(moveId, false)
         codeLensProvider.refresh()

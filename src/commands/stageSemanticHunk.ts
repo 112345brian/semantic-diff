@@ -26,9 +26,9 @@ export async function stageClause(
     try {
       await book.stageClause(changeId)
       await store.refreshBook(book.rootDir)
-      vscode.window.setStatusBarMessage("Semantic Stage: clause staged", 3000)
+      vscode.window.setStatusBarMessage("Semantic Diff: clause staged", 3000)
     } catch (err: any) {
-      vscode.window.showErrorMessage(`Semantic Stage: ${err.message ?? err}`)
+      vscode.window.showErrorMessage(`Semantic Diff: ${err.message ?? err}`)
     }
     return
   }
@@ -37,20 +37,20 @@ export async function stageClause(
   if (!session) return
   const sc = session.findChange(changeId)
   if (!sc) {
-    vscode.window.showWarningMessage("Semantic Stage: this clause is no longer current; the diff has been refreshed.")
+    vscode.window.showWarningMessage("Semantic Diff: this clause is no longer current; the diff has been refreshed.")
     await store.refresh(filePath)
     return
   }
   if (sc.stageability.kind !== "stageable") {
-    vscode.window.showWarningMessage(`Semantic Stage: ${sc.stageability.reason}`)
+    vscode.window.showWarningMessage(`Semantic Diff: ${sc.stageability.reason}`)
     return
   }
   try {
     await stageEdits(session, [sc.stageability.edit])
     await store.refresh(filePath)
-    vscode.window.setStatusBarMessage("Semantic Stage: clause staged", 3000)
+    vscode.window.setStatusBarMessage("Semantic Diff: clause staged", 3000)
   } catch (err: any) {
-    vscode.window.showErrorMessage(`Semantic Stage: ${err.message ?? err}`)
+    vscode.window.showErrorMessage(`Semantic Diff: ${err.message ?? err}`)
   }
 }
 
@@ -61,7 +61,7 @@ export async function stageClause(
 export async function stageHunkAtCursor(store: SessionStore): Promise<void> {
   const editor = vscode.window.activeTextEditor
   if (!editor || editor.document.uri.scheme !== SCHEME) {
-    vscode.window.showWarningMessage("Semantic Stage: place the cursor in a semantic diff view first.")
+    vscode.window.showWarningMessage("Semantic Diff: place the cursor in a semantic diff view first.")
     return
   }
   const key = sessionKeyOf(editor.document.uri)
@@ -73,7 +73,7 @@ export async function stageHunkAtCursor(store: SessionStore): Promise<void> {
 
   const match = session.changes.find((sc) => coversLine(sc, line, onNewSide))
   if (!match) {
-    vscode.window.showInformationMessage("Semantic Stage: no changed clause at the cursor.")
+    vscode.window.showInformationMessage("Semantic Diff: no changed clause at the cursor.")
     return
   }
   await stageClause(store, key, match.change.id)
@@ -98,7 +98,7 @@ export async function stageAll(store: SessionStore, arg?: unknown): Promise<void
     sessionKey = filePath
   }
   if (!filePath || !sessionKey) {
-    vscode.window.showWarningMessage("Semantic Stage: open a semantic diff first.")
+    vscode.window.showWarningMessage("Semantic Diff: open a semantic diff first.")
     return
   }
 
@@ -108,9 +108,9 @@ export async function stageAll(store: SessionStore, arg?: unknown): Promise<void
     try {
       const count = await book.stageAll()
       await store.refreshBook(book.rootDir)
-      vscode.window.showInformationMessage(`Semantic Stage: staged ${count} clause change(s).`)
+      vscode.window.showInformationMessage(`Semantic Diff: staged ${count} clause change(s).`)
     } catch (err: any) {
-      vscode.window.showErrorMessage(`Semantic Stage: ${err.message ?? err}`)
+      vscode.window.showErrorMessage(`Semantic Diff: ${err.message ?? err}`)
     }
     return
   }
@@ -124,8 +124,8 @@ export async function stageAll(store: SessionStore, arg?: unknown): Promise<void
   if (stageables.length === 0) {
     vscode.window.showInformationMessage(
       skipped.length > 0
-        ? `Semantic Stage: nothing stageable; ${skipped.length} unsafe change(s) skipped.`
-        : "Semantic Stage: nothing to stage."
+        ? `Semantic Diff: nothing stageable; ${skipped.length} unsafe change(s) skipped.`
+        : "Semantic Diff: nothing to stage."
     )
     return
   }
@@ -145,11 +145,11 @@ export async function stageAll(store: SessionStore, arg?: unknown): Promise<void
     }
     const summary =
       skipped.length > 0
-        ? `Semantic Stage: staged ${staged} clause change(s); skipped ${skipped.length} unsafe.`
-        : `Semantic Stage: staged ${staged} clause change(s).`
+        ? `Semantic Diff: staged ${staged} clause change(s); skipped ${skipped.length} unsafe.`
+        : `Semantic Diff: staged ${staged} clause change(s).`
     vscode.window.showInformationMessage(summary)
   } catch (err: any) {
-    vscode.window.showErrorMessage(`Semantic Stage: ${err.message ?? err}`)
+    vscode.window.showErrorMessage(`Semantic Diff: ${err.message ?? err}`)
   }
 }
 
@@ -172,7 +172,7 @@ async function stageSequentially(
 export async function stageAllFiles(store: SessionStore): Promise<void> {
   const sessions = store.allWorkingSessions()
   if (sessions.length === 0) {
-    vscode.window.showInformationMessage("Semantic Stage: no open sessions.")
+    vscode.window.showInformationMessage("Semantic Diff: no open sessions.")
     return
   }
   let totalStaged = 0
@@ -202,8 +202,8 @@ export async function stageAllFiles(store: SessionStore): Promise<void> {
     }
   }
   const msg = totalSkipped > 0
-    ? `Semantic Stage: staged ${totalStaged} clause change(s) across ${sessions.length} file(s); ${totalSkipped} unsafe skipped.`
-    : `Semantic Stage: staged ${totalStaged} clause change(s) across ${sessions.length} file(s).`
+    ? `Semantic Diff: staged ${totalStaged} clause change(s) across ${sessions.length} file(s); ${totalSkipped} unsafe skipped.`
+    : `Semantic Diff: staged ${totalStaged} clause change(s) across ${sessions.length} file(s).`
   vscode.window.showInformationMessage(msg)
 }
 
@@ -217,22 +217,22 @@ export async function stageMove(
   if (book) {
     const pair = book.findChangesForMove(moveId)
     if (!pair) {
-      vscode.window.showWarningMessage("Semantic Stage: move pair not found; diff may have been refreshed.")
+      vscode.window.showWarningMessage("Semantic Diff: move pair not found; diff may have been refreshed.")
       await store.refreshBook(book.rootDir)
       return
     }
     const [a, b] = pair
     if (a.stageability.kind !== "stageable" || b.stageability.kind !== "stageable") {
-      vscode.window.showWarningMessage("Semantic Stage: move cannot be staged — edit spans a file boundary.")
+      vscode.window.showWarningMessage("Semantic Diff: move cannot be staged — edit spans a file boundary.")
       return
     }
     try {
       await book.stageClause(a.change.id)
       await book.stageClause(b.change.id)
       await store.refreshBook(book.rootDir)
-      vscode.window.setStatusBarMessage("Semantic Stage: move staged", 3000)
+      vscode.window.setStatusBarMessage("Semantic Diff: move staged", 3000)
     } catch (err: any) {
-      vscode.window.showErrorMessage(`Semantic Stage: ${err.message ?? err}`)
+      vscode.window.showErrorMessage(`Semantic Diff: ${err.message ?? err}`)
     }
     return
   }
@@ -241,25 +241,25 @@ export async function stageMove(
   if (!session) return
   const pair = session.findChangesForMove(moveId)
   if (!pair) {
-    vscode.window.showWarningMessage("Semantic Stage: move pair not found; diff may have been refreshed.")
+    vscode.window.showWarningMessage("Semantic Diff: move pair not found; diff may have been refreshed.")
     await store.refresh(filePath)
     return
   }
   const [a, b] = pair
   if (a.stageability.kind !== "stageable") {
-    vscode.window.showWarningMessage(`Semantic Stage: ${a.stageability.reason}`)
+    vscode.window.showWarningMessage(`Semantic Diff: ${a.stageability.reason}`)
     return
   }
   if (b.stageability.kind !== "stageable") {
-    vscode.window.showWarningMessage(`Semantic Stage: ${b.stageability.reason}`)
+    vscode.window.showWarningMessage(`Semantic Diff: ${b.stageability.reason}`)
     return
   }
   try {
     await stageEdits(session, [a.stageability.edit, b.stageability.edit])
     await store.refresh(filePath)
-    vscode.window.setStatusBarMessage("Semantic Stage: move staged", 3000)
+    vscode.window.setStatusBarMessage("Semantic Diff: move staged", 3000)
   } catch (err: any) {
-    vscode.window.showErrorMessage(`Semantic Stage: ${err.message ?? err}`)
+    vscode.window.showErrorMessage(`Semantic Diff: ${err.message ?? err}`)
   }
 }
 

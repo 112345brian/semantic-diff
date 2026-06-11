@@ -45,7 +45,7 @@ export class SessionStore implements vscode.Disposable {
     if (!session) {
       const repo = await resolveRepo(filePath)
       if (!repo) throw new Error("This file is not inside a git repository.")
-      const cfg = vscode.workspace.getConfiguration("semanticStage")
+      const cfg = vscode.workspace.getConfiguration("semanticDiff")
       const conjunctionMinLength = cfg.get<number>("conjunctionMinLength", 60)
       const ignoreListNumbering = cfg.get<boolean>("ignoreOrderedListNumbering", true)
       session = new Session(filePath, repo, conjunctionMinLength, { kind: "working" }, { ignoreListNumbering })
@@ -69,7 +69,7 @@ export class SessionStore implements vscode.Disposable {
     if (!session) {
       const repo = await resolveRepo(filePath)
       if (!repo) throw new Error("This file is not inside a git repository.")
-      const cfg = vscode.workspace.getConfiguration("semanticStage")
+      const cfg = vscode.workspace.getConfiguration("semanticDiff")
       const conjunctionMinLength = cfg.get<number>("conjunctionMinLength", 60)
       const ignoreListNumbering = cfg.get<boolean>("ignoreOrderedListNumbering", true)
       session = new Session(filePath, repo, conjunctionMinLength, {
@@ -123,7 +123,7 @@ export class SessionStore implements vscode.Disposable {
     const key = project.rootDir
     let book = this.bookSessions.get(key)
     if (!book) {
-      const cfg = vscode.workspace.getConfiguration("semanticStage")
+      const cfg = vscode.workspace.getConfiguration("semanticDiff")
       const conjunctionMinLength = cfg.get<number>("conjunctionMinLength", 60)
       const ignoreListNumbering = cfg.get<boolean>("ignoreOrderedListNumbering", true)
       book = new BookSession(project, conjunctionMinLength, { ignoreListNumbering })

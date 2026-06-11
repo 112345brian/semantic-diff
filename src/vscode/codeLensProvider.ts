@@ -57,27 +57,27 @@ function lensesForChange(sc: SessionChange, session: Session, filePath: string, 
   if (moveId && session.isMoveActive(moveId)) {
     if (sc.status === "ignored") {
       return [
-        { title: "↕ Move ignored — Undo", command: "semanticStage.unignoreMove", arguments: [filePath, moveId] },
+        { title: "↕ Move ignored — Undo", command: "semanticDiff.unignoreMove", arguments: [filePath, moveId] },
       ]
     }
     const isSrcSide = sc.change.kind === "deleted"
     return [
-      { title: isSrcSide ? "↕ Moved from here — Stage move" : "↕ Moved here — Stage move", command: "semanticStage.stageMove", arguments: [filePath, moveId] },
-      { title: "Split", command: "semanticStage.splitMove", arguments: [filePath, moveId] },
-      { title: "Ignore", command: "semanticStage.ignoreMove", arguments: [filePath, moveId] },
+      { title: isSrcSide ? "↕ Moved from here — Stage move" : "↕ Moved here — Stage move", command: "semanticDiff.stageMove", arguments: [filePath, moveId] },
+      { title: "Split", command: "semanticDiff.splitMove", arguments: [filePath, moveId] },
+      { title: "Ignore", command: "semanticDiff.ignoreMove", arguments: [filePath, moveId] },
     ]
   }
 
   if (sc.status === "ignored") {
     return [
-      { title: "Ignored — Undo", command: "semanticStage.unignoreClause", arguments: [filePath, id] },
+      { title: "Ignored — Undo", command: "semanticDiff.unignoreClause", arguments: [filePath, id] },
     ]
   }
 
   if (sc.stageability.kind === "unsafe") {
     return [
       { title: `⚠ Not stageable: ${sc.stageability.reason}`, command: "" },
-      { title: "Show raw", command: "semanticStage.showRaw", arguments: [filePath, id] },
+      { title: "Show raw", command: "semanticDiff.showRaw", arguments: [filePath, id] },
     ]
   }
 
@@ -94,8 +94,8 @@ function lensesForChange(sc: SessionChange, session: Session, filePath: string, 
         : `Stage ${noun}`
 
   return [
-    { title: verb, command: "semanticStage.stageClause", arguments: [filePath, id] },
-    { title: "Ignore", command: "semanticStage.ignoreClause", arguments: [filePath, id] },
-    { title: "Show raw", command: "semanticStage.showRaw", arguments: [filePath, id] },
+    { title: verb, command: "semanticDiff.stageClause", arguments: [filePath, id] },
+    { title: "Ignore", command: "semanticDiff.ignoreClause", arguments: [filePath, id] },
+    { title: "Show raw", command: "semanticDiff.showRaw", arguments: [filePath, id] },
   ]
 }

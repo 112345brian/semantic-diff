@@ -13,18 +13,18 @@ export async function openBookDiff(store: SessionStore): Promise<void> {
     startDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
   }
   if (!startDir) {
-    vscode.window.showErrorMessage("Semantic Stage: open a chapter file or workspace to detect a book project.")
+    vscode.window.showErrorMessage("Semantic Diff: open a chapter file or workspace to detect a book project.")
     return
   }
 
   const project = await detectBookProject(startDir)
   if (!project) {
-    vscode.window.showErrorMessage("Semantic Stage: no bookdown or quarto project found (looked for _bookdown.yml / _quarto.yml).")
+    vscode.window.showErrorMessage("Semantic Diff: no bookdown or quarto project found (looked for _bookdown.yml / _quarto.yml).")
     return
   }
 
   await vscode.window.withProgress(
-    { location: vscode.ProgressLocation.Notification, title: "Semantic Stage: loading book diff…" },
+    { location: vscode.ProgressLocation.Notification, title: "Semantic Diff: loading book diff…" },
     async () => { await store.getOrCreateBook(project) }
   )
 

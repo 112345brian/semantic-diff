@@ -2,7 +2,7 @@ import * as vscode from "vscode"
 import { Session } from "../session"
 import { SessionStore } from "./sessionStore"
 
-export const SCHEME = "semantic-stage"
+export const SCHEME = "semantic-diff"
 
 export function oldUri(filePath: string, sessionKey?: string): vscode.Uri {
   return vscode.Uri.from({

@@ -12,20 +12,20 @@ export async function toggleProjection(store: SessionStore): Promise<void> {
   if (editor?.document.uri.scheme === SCHEME) filePath = filePathOf(editor.document.uri)
   else if (editor?.document.uri.scheme === "file") filePath = editor.document.uri.fsPath
   if (!filePath) {
-    vscode.window.showWarningMessage("Semantic Stage: open a semantic diff first.")
+    vscode.window.showWarningMessage("Semantic Diff: open a semantic diff first.")
     return
   }
   const session = store.get(filePath)
   if (!session) {
-    vscode.window.showWarningMessage("Semantic Stage: no semantic diff session for this file.")
+    vscode.window.showWarningMessage("Semantic Diff: no semantic diff session for this file.")
     return
   }
   session.projectionEnabled = !session.projectionEnabled
   await store.refresh(filePath)
   vscode.window.setStatusBarMessage(
     session.projectionEnabled
-      ? "Semantic Stage: projection on"
-      : "Semantic Stage: projection off (raw text)",
+      ? "Semantic Diff: projection on"
+      : "Semantic Diff: projection off (raw text)",
     3000
   )
 }

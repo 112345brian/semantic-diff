@@ -20,6 +20,7 @@ type SourceLine = {
 type Segment =
   | { type: "verbatim"; line: SourceLine }
   | { type: "paragraph"; lines: SourceLine[] }
+  | { type: "list-item"; line: SourceLine; markerWidth: number }
 
 /**
  * Builds the semantic projection of a document.
@@ -52,6 +53,8 @@ export function projectDocument(
   for (const seg of segments) {
     if (seg.type === "verbatim") {
       builder.emitVerbatimLine(seg.line)
+    } else if (seg.type === "list-item") {
+      builder.emitListItem(seg.line, seg.markerWidth, conjunctionMinLength)
     } else {
       builder.emitParagraph(seg.lines, conjunctionMinLength)
     }
@@ -106,7 +109,7 @@ const FENCE_RE = /^ {0,3}(```+|~~~+|:::+)/
 const MATH_BLOCK_RE = /^ {0,3}\$\$\s*$/
 const HEADING_RE = /^ {0,3}#{1,6}\s/
 const BLOCKQUOTE_RE = /^ {0,3}>/
-const LIST_ITEM_RE = /^ {0,5}([-*+]|\d{1,9}[.)])\s/
+const LIST_ITEM_PREFIX_RE = /^( {0,5}(?:[-*+]|\d{1,9}[.)]) +)/
 const TABLE_RE = /^ {0,3}\|/
 const HR_RE = /^ {0,3}([-*_])\s*(\1\s*){2,}$/
 const INDENTED_CODE_RE = /^(?: {4}|\t)/
@@ -195,10 +198,16 @@ function segment(lines: SourceLine[], text: string): Segment[] {
       HR_RE.test(t.trimEnd()) ||
       INDENTED_CODE_RE.test(t)
 
-    const listItem = LIST_ITEM_RE.test(t)
-    if (listItem) listDepth = true
+    const listPrefixMatch = LIST_ITEM_PREFIX_RE.exec(t)
+    if (listPrefixMatch) {
+      listDepth = true
+      flushParagraph()
+      segments.push({ type: "list-item", line, markerWidth: listPrefixMatch[1].length })
+      i++
+      continue
+    }
 
-    if (structural || listItem || listDepth) {
+    if (structural || listDepth) {
       flushParagraph()
       segments.push({ type: "verbatim", line })
       i++
@@ -298,6 +307,64 @@ class ProjectionBuilder {
     if (line.newlineAt !== -1) {
       this.endLine(false, line.start, line.newlineAt)
     } else if (line.text.length > 0) {
+      this.finishTrailingLine(line.start)
+    }
+  }
+
+  /**
+   * Splits a list item's content into clauses. The first clause keeps the
+   * list marker prefix (`- `, `1. `, etc.); continuation clauses are indented
+   * by the same width with synthetic spaces so they visually align below the
+   * content — making it obvious the clauses belong to one list item.
+   * Falls back to verbatim when there's only one clause.
+   */
+  emitListItem(line: SourceLine, markerWidth: number, conjunctionMinLength: number): void {
+    const contentStart = line.start + markerWidth
+    const contentEnd = line.end
+
+    if (contentEnd <= contentStart) {
+      this.emitVerbatimLine(line)
+      return
+    }
+
+    const clauses = splitClauses(this.originalText.slice(contentStart, contentEnd), conjunctionMinLength)
+    if (clauses.length <= 1) {
+      this.emitVerbatimLine(line)
+      return
+    }
+
+    // Emit the marker as a real token, then reset lineKind so the subsequent
+    // clause content classifies the line as "prose" (not "verbatim").
+    this.addContent(
+      {
+        text: this.originalText.slice(line.start, contentStart),
+        sourceSpan: { startOffset: line.start, endOffset: contentStart },
+        synthetic: false,
+      },
+      "verbatim"
+    )
+    this.lineKind = "blank"
+
+    const indent = " ".repeat(markerWidth)
+
+    for (let c = 0; c < clauses.length; c++) {
+      const clause = clauses[c]
+      const absStart = contentStart + clause.start
+      const absEnd = contentStart + clause.end
+
+      this.emitClauseContent(absStart, absEnd)
+
+      const isLast = c === clauses.length - 1
+      if (!isLast) {
+        this.endLine(true, null)
+        // Synthetic indent aligns continuation clauses under the content.
+        this.addContent({ text: indent, sourceSpan: null, synthetic: true }, "prose")
+      }
+    }
+
+    if (line.newlineAt !== -1) {
+      this.endLine(false, line.start, line.newlineAt)
+    } else {
       this.finishTrailingLine(line.start)
     }
   }

@@ -79,15 +79,22 @@ test("projection is reflow-resistant: rewrapping a paragraph changes nothing", (
 test("markdown structure is preserved verbatim", () => {
   const text = fixture("markdown-lists.md")
   const proj = projectDocument("markdown-lists.md", text)
-  // No synthetic break may appear inside frontmatter, lists, fences, tables,
-  // or quotes: every verbatim line ends with a real newline.
+  // No synthetic break may appear inside frontmatter, fences, tables, or
+  // quotes: every verbatim line ends with a real newline.
   for (const line of proj.lines) {
     if (line.kind === "verbatim") assert.ok(!line.syntheticEol, `unexpected break in: ${line.text}`)
   }
-  // A list item with sentence punctuation stays one line.
-  const listLine = proj.lines.find((l) => l.text.includes("first item"))
-  assert.ok(listLine)
-  assert.equal(listLine!.text, "- first item stays one line. even with punctuation.")
+  // A multi-sentence list item is split into clause lines; the marker stays
+  // on the first clause and continuations are synthetically indented.
+  const firstClause = proj.lines.find((l) => l.text.startsWith("- first item"))
+  assert.ok(firstClause, "first clause line not found")
+  assert.equal(firstClause!.text, "- first item stays one line.")
+  assert.ok(firstClause!.syntheticEol, "first clause should end synthetically")
+  assert.equal(firstClause!.kind, "prose")
+  const secondClause = proj.lines.find((l) => l.text.includes("even with punctuation"))
+  assert.ok(secondClause, "second clause line not found")
+  assert.equal(secondClause!.text, "  even with punctuation.")
+  assert.ok(!secondClause!.syntheticEol, "last clause should end with real newline")
   // Code fence content untouched.
   assert.ok(proj.lines.some((l) => l.text === "const x = 1. plus more."))
 })

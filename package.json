@@ -1,9 +1,9 @@
 {
-  "name": "semantic-stage",
-  "displayName": "Semantic Stage",
+  "name": "semantic-diff",
+  "displayName": "Semantic Diff",
   "description": "Clause-based semantic diff and staging for prose in git. The meaningful unit of change is the clause, not the line.",
   "version": "0.1.0",
-  "publisher": "semantic-stage",
+  "publisher": "semantic-diff",
   "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
@@ -17,97 +17,97 @@
   "contributes": {
     "commands": [
       {
-        "command": "semanticStage.openDiff",
-        "title": "Semantic Stage: Open Semantic Diff"
+        "command": "semanticDiff.openDiff",
+        "title": "Semantic Diff: Open Semantic Diff"
       },
       {
-        "command": "semanticStage.stageHunk",
-        "title": "Semantic Stage: Stage Selected Semantic Hunk"
+        "command": "semanticDiff.stageHunk",
+        "title": "Semantic Diff: Stage Selected Semantic Hunk"
       },
       {
-        "command": "semanticStage.stageAll",
-        "title": "Semantic Stage: Stage All Semantic Hunks"
+        "command": "semanticDiff.stageAll",
+        "title": "Semantic Diff: Stage All Semantic Hunks"
       },
       {
-        "command": "semanticStage.toggleProjection",
-        "title": "Semantic Stage: Toggle Semantic Projection"
+        "command": "semanticDiff.toggleProjection",
+        "title": "Semantic Diff: Toggle Semantic Projection"
       },
       {
-        "command": "semanticStage.openHistoricalDiff",
-        "title": "Semantic Stage: Open Semantic Diff Between Commits…",
+        "command": "semanticDiff.openHistoricalDiff",
+        "title": "Semantic Diff: Open Semantic Diff Between Commits…",
         "icon": "$(git-commit)"
       },
       {
-        "command": "semanticStage.toggleSplitPane",
-        "title": "Semantic Stage: Toggle Split/Inline View",
+        "command": "semanticDiff.toggleSplitPane",
+        "title": "Semantic Diff: Toggle Split/Inline View",
         "icon": "$(split-horizontal)"
       },
       {
-        "command": "semanticStage.toggleClauseNumbers",
-        "title": "Semantic Stage: Toggle Clause Numbers in Editor"
+        "command": "semanticDiff.toggleClauseNumbers",
+        "title": "Semantic Diff: Toggle Clause Numbers in Editor"
       },
       {
-        "command": "semanticStage.stageAllFiles",
-        "title": "Semantic Stage: Stage All Changes in All Files"
+        "command": "semanticDiff.stageAllFiles",
+        "title": "Semantic Diff: Stage All Changes in All Files"
       },
       {
-        "command": "semanticStage.nextChange",
-        "title": "Semantic Stage: Go to Next Change"
+        "command": "semanticDiff.nextChange",
+        "title": "Semantic Diff: Go to Next Change"
       },
       {
-        "command": "semanticStage.prevChange",
-        "title": "Semantic Stage: Go to Previous Change"
+        "command": "semanticDiff.prevChange",
+        "title": "Semantic Diff: Go to Previous Change"
       },
-      { "command": "semanticStage.stageMove", "title": "Semantic Stage: Stage Move" },
-      { "command": "semanticStage.splitMove", "title": "Semantic Stage: Split Move into Delete + Insert" },
-      { "command": "semanticStage.ignoreMove", "title": "Semantic Stage: Ignore Move" },
-      { "command": "semanticStage.unignoreMove", "title": "Semantic Stage: Unignore Move" },
+      { "command": "semanticDiff.stageMove", "title": "Semantic Diff: Stage Move" },
+      { "command": "semanticDiff.splitMove", "title": "Semantic Diff: Split Move into Delete + Insert" },
+      { "command": "semanticDiff.ignoreMove", "title": "Semantic Diff: Ignore Move" },
+      { "command": "semanticDiff.unignoreMove", "title": "Semantic Diff: Unignore Move" },
       {
-        "command": "semanticStage.openBookDiff",
-        "title": "Semantic Stage: Open Book Diff (bookdown / quarto)",
+        "command": "semanticDiff.openBookDiff",
+        "title": "Semantic Diff: Open Book Diff (bookdown / quarto)",
         "icon": "$(book)"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "semanticStage.openHistoricalDiff",
-          "when": "semanticStage.diffActive",
+          "command": "semanticDiff.openHistoricalDiff",
+          "when": "semanticDiff.diffActive",
           "group": "navigation"
         },
         {
-          "command": "semanticStage.toggleSplitPane",
-          "when": "semanticStage.diffActive",
+          "command": "semanticDiff.toggleSplitPane",
+          "when": "semanticDiff.diffActive",
           "group": "navigation"
         }
       ]
     },
     "keybindings": [
       {
-        "command": "semanticStage.nextChange",
+        "command": "semanticDiff.nextChange",
         "key": "alt+]",
         "when": "editorTextFocus"
       },
       {
-        "command": "semanticStage.prevChange",
+        "command": "semanticDiff.prevChange",
         "key": "alt+[",
         "when": "editorTextFocus"
       },
       {
-        "command": "semanticStage.stageHunk",
+        "command": "semanticDiff.stageHunk",
         "key": "alt+s",
-        "when": "editorTextFocus && semanticStage.diffActive"
+        "when": "editorTextFocus && semanticDiff.diffActive"
       }
     ],
     "configuration": {
-      "title": "Semantic Stage",
+      "title": "Semantic Diff",
       "properties": {
-        "semanticStage.conjunctionMinLength": {
+        "semanticDiff.conjunctionMinLength": {
           "type": "number",
           "default": 60,
           "description": "Minimum clause length (characters) before a break is inserted ahead of a coordinating conjunction."
         },
-        "semanticStage.ignoreOrderedListNumbering": {
+        "semanticDiff.ignoreOrderedListNumbering": {
           "type": "boolean",
           "default": true,
           "description": "When enabled, changes to ordered-list sequence numbers (1. → 2., etc.) are not treated as meaningful clause changes. Item text changes are still surfaced normally."

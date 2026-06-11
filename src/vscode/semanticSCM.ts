@@ -13,7 +13,7 @@ export class SemanticSCM implements vscode.Disposable {
   private disposables: vscode.Disposable[] = []
 
   constructor(private store: SessionStore) {
-    this.scm = vscode.scm.createSourceControl("semanticStage", "Semantic Stage")
+    this.scm = vscode.scm.createSourceControl("semanticDiff", "Semantic Diff")
     this.scm.statusBarCommands = []
     this.group = this.scm.createResourceGroup("pending", "Pending Clause Changes")
     this.group.hideWhenEmpty = true
@@ -51,7 +51,7 @@ export class SemanticSCM implements vscode.Disposable {
         },
         command: {
           title: "Open Semantic Diff",
-          command: "semanticStage.openDiff",
+          command: "semanticDiff.openDiff",
           arguments: [vscode.Uri.file(session.filePath)],
         },
       })

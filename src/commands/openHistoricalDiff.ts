@@ -18,19 +18,19 @@ import { resolveTargetFile, ensureDiffSettings } from "./openSemanticDiff"
 export async function openHistoricalDiff(store: SessionStore, arg?: unknown): Promise<void> {
   const filePath = resolveTargetFile(arg)
   if (!filePath) {
-    vscode.window.showWarningMessage("Semantic Stage: open a file first.")
+    vscode.window.showWarningMessage("Semantic Diff: open a file first.")
     return
   }
 
   const repo = await resolveRepo(filePath)
   if (!repo) {
-    vscode.window.showErrorMessage("Semantic Stage: this file is not inside a git repository.")
+    vscode.window.showErrorMessage("Semantic Diff: this file is not inside a git repository.")
     return
   }
 
   const commits = await recentCommits(repo, 60)
   if (commits.length === 0) {
-    vscode.window.showWarningMessage("Semantic Stage: no commits found for this file.")
+    vscode.window.showWarningMessage("Semantic Diff: no commits found for this file.")
     return
   }
 
@@ -61,7 +61,7 @@ export async function openHistoricalDiff(store: SessionStore, arg?: unknown): Pr
       title
     )
   } catch (err: any) {
-    vscode.window.showErrorMessage(`Semantic Stage: ${err.message ?? err}`)
+    vscode.window.showErrorMessage(`Semantic Diff: ${err.message ?? err}`)
   }
 }
 

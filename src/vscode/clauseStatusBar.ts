@@ -37,7 +37,7 @@ export class ClauseStatusBar implements vscode.Disposable {
     if (idx === null) { this.item.hide(); return }
 
     this.item.text = `$(list-ordered) Clause ${idx + 1}`
-    this.item.tooltip = "Semantic Stage: projected clause at cursor"
+    this.item.tooltip = "Semantic Diff: projected clause at cursor"
     this.item.show()
   }
 

@@ -1,7 +1,7 @@
 import * as vscode from "vscode"
 import { SessionStore } from "./sessionStore"
 
-const STORAGE_KEY = "semanticStage.clauseNumberFiles"
+const STORAGE_KEY = "semanticDiff.clauseNumberFiles"
 
 /**
  * Renders faint inline [N] markers at each clause-start position in real file

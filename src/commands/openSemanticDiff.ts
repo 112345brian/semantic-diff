@@ -20,13 +20,13 @@ export function resolveTargetFile(arg?: unknown): string | undefined {
 export async function openSemanticDiff(store: SessionStore, arg?: unknown): Promise<void> {
   const filePath = resolveTargetFile(arg)
   if (!filePath) {
-    vscode.window.showWarningMessage("Semantic Stage: open a file first.")
+    vscode.window.showWarningMessage("Semantic Diff: open a file first.")
     return
   }
   try {
     await store.getOrCreate(filePath)
   } catch (err: any) {
-    vscode.window.showErrorMessage(`Semantic Stage: ${err.message ?? err}`)
+    vscode.window.showErrorMessage(`Semantic Diff: ${err.message ?? err}`)
     return
   }
   await ensureDiffSettings()

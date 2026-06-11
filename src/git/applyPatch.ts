@@ -9,7 +9,7 @@ import { RepoContext } from "../types/git"
  * is never touched — the real file stays exactly as the writer left it.
  */
 export async function applyCachedPatch(repo: RepoContext, patch: string): Promise<void> {
-  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "semantic-stage-"))
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "semantic-diff-"))
   const patchFile = path.join(tmpDir, "staged.patch")
   try {
     await fs.writeFile(patchFile, patch, "utf8")
