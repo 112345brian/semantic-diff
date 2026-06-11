@@ -4,24 +4,19 @@ A VS Code extension for reviewing and staging prose changes in git at **clause g
 
 ## How it works
 
-```
-git index blob          working file
-        \                  /
-      semantic projection (clause per line)
-                 |
-        clause-level diff
-                 |
-   one stageable unit per changed clause
-                 |
-      VS Code virtual diff view (CodeLens per clause)
-                 |
-        approve a clause
-                 |
-   map back to real source ranges
-                 |
-     unified diff against the real file
-                 |
-        git apply --cached
+```mermaid
+flowchart TD
+    A[git index blob] & B[working file] --> C[semantic projection\nclause per line]
+    C --> D[clause-level diff]
+    D --> E[virtual diff view\nCodeLens per clause]
+    E --> F{approve a clause}
+    F --> G[map back to real\nsource ranges]
+    G --> H[unified diff patch]
+    H --> I[git apply --cached]
+
+    style A fill:#2d333b,stroke:#444c56,color:#cdd9e5
+    style B fill:#2d333b,stroke:#444c56,color:#cdd9e5
+    style I fill:#1b4332,stroke:#2d6a4f,color:#95d5b2
 ```
 
 Key properties:

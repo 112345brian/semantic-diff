@@ -128,32 +128,70 @@ type AlignedDocuments = {
 
 ## Pipeline
 
+```mermaid
+flowchart TD
+    A[git index blob] & B[git working file] --> C
+    C["projectDocument() ×2\nold projection · new projection"] --> D
+    D["analyze()\n─ diffLines() LCS\n─ computeClauseChanges()\n─ detectMoves()"] --> E
+    E[buildAlignedDocuments] --> F
+    F["virtual diff view\nsemantic-diff://old/  ·  semantic-diff://new/"] --> G
+    G{user approves a clause} --> H
+    H["SourceEdit from stageability\napplyEdits() · buildPatch()"] --> I
+    I[git apply --cached]
 ```
-git index blob  ──────────────────────┐
-git working file ─────────────────────┤
-                                      ↓
-                          projectDocument() × 2
-                        (old projection, new projection)
-                                      ↓
-                          analyze() in hunkMapping.ts
-                          - diffLines() LCS
-                          - computeClauseChanges()
-                          - detectMoves()   ← post-diff pass
-                                      ↓
-                          buildAlignedDocuments()
-                                      ↓
-                       virtual diff view in VS Code
-                          (semantic-diff://old/  vs
-                           semantic-diff://new/)
-                                      ↓
-                         user approves a clause
-                                      ↓
-                         SourceEdit from stageability
-                                      ↓
-                          applyEdits() on real file text
-                          buildPatch() → unified diff
-                                      ↓
-                          git apply --cached
+
+### Module relationships
+
+```mermaid
+graph LR
+    subgraph git
+        BR[blobReader]
+        PB[patchBuilder]
+        AP[applyPatch]
+    end
+
+    subgraph projection
+        PD[projectDocument]
+        SB[semanticBreaks]
+        SM[sourceMap]
+    end
+
+    subgraph diff
+        CD[clauseDiff]
+        HM[hunkMapping]
+        AL[alignment]
+    end
+
+    subgraph vscode
+        SS[sessionStore]
+        VP[virtualDocProvider]
+        CL[codeLensProvider]
+        DEC[decorations]
+        SCM[semanticSCM]
+        SB2[clauseStatusBar]
+    end
+
+    subgraph bookdown
+        DP[detectProject]
+        BS[bookSession]
+    end
+
+    BR --> SS
+    SS --> |Session| PD
+    SB --> PD
+    SM --> HM
+    PD --> HM
+    CD --> HM
+    HM --> AL
+    AL --> VP
+    HM --> CL
+    HM --> DEC
+    SS --> SCM
+    SS --> SB2
+    CL --> |stage| PB
+    PB --> AP
+    DP --> BS
+    BS --> SS
 ```
 
 ## Projection
