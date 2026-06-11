@@ -13,7 +13,7 @@
     "Other"
   ],
   "main": "./out/src/extension.js",
-  "activationEvents": [],
+  "activationEvents": ["*"],
   "contributes": {
     "commands": [
       {
@@ -31,6 +31,72 @@
       {
         "command": "semanticStage.toggleProjection",
         "title": "Semantic Stage: Toggle Semantic Projection"
+      },
+      {
+        "command": "semanticStage.openHistoricalDiff",
+        "title": "Semantic Stage: Open Semantic Diff Between Commits…",
+        "icon": "$(git-commit)"
+      },
+      {
+        "command": "semanticStage.toggleSplitPane",
+        "title": "Semantic Stage: Toggle Split/Inline View",
+        "icon": "$(split-horizontal)"
+      },
+      {
+        "command": "semanticStage.toggleClauseNumbers",
+        "title": "Semantic Stage: Toggle Clause Numbers in Editor"
+      },
+      {
+        "command": "semanticStage.stageAllFiles",
+        "title": "Semantic Stage: Stage All Changes in All Files"
+      },
+      {
+        "command": "semanticStage.nextChange",
+        "title": "Semantic Stage: Go to Next Change"
+      },
+      {
+        "command": "semanticStage.prevChange",
+        "title": "Semantic Stage: Go to Previous Change"
+      },
+      { "command": "semanticStage.stageMove", "title": "Semantic Stage: Stage Move" },
+      { "command": "semanticStage.splitMove", "title": "Semantic Stage: Split Move into Delete + Insert" },
+      { "command": "semanticStage.ignoreMove", "title": "Semantic Stage: Ignore Move" },
+      { "command": "semanticStage.unignoreMove", "title": "Semantic Stage: Unignore Move" },
+      {
+        "command": "semanticStage.openBookDiff",
+        "title": "Semantic Stage: Open Book Diff (bookdown / quarto)",
+        "icon": "$(book)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "semanticStage.openHistoricalDiff",
+          "when": "semanticStage.diffActive",
+          "group": "navigation"
+        },
+        {
+          "command": "semanticStage.toggleSplitPane",
+          "when": "semanticStage.diffActive",
+          "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "semanticStage.nextChange",
+        "key": "alt+]",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "semanticStage.prevChange",
+        "key": "alt+[",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "semanticStage.stageHunk",
+        "key": "alt+s",
+        "when": "editorTextFocus && semanticStage.diffActive"
       }
     ],
     "configuration": {
@@ -40,6 +106,11 @@
           "type": "number",
           "default": 60,
           "description": "Minimum clause length (characters) before a break is inserted ahead of a coordinating conjunction."
+        },
+        "semanticStage.ignoreOrderedListNumbering": {
+          "type": "boolean",
+          "default": true,
+          "description": "When enabled, changes to ordered-list sequence numbers (1. → 2., etc.) are not treated as meaningful clause changes. Item text changes are still surfaced normally."
         }
       }
     }

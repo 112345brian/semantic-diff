@@ -13,6 +13,11 @@ export type ClauseChange = {
   id: string
   kind: ClauseChangeKind
   grouped: boolean
+  /**
+   * Set when this change is one half of a detected move pair. Both the
+   * deletion and the insertion in the pair share the same moveId.
+   */
+  moveId?: string
   /** Inclusive range of old-projection line indices. Null for insertions. */
   oldStartIndex: number | null
   oldEndIndex: number | null

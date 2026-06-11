@@ -1,16 +1,94 @@
 import { AnnotatedChange, ClauseChange, SourceEdit, Stageability } from "../types/diff"
 import { Projection, ProjectedLine } from "../types/projection"
-import { computeClauseChanges } from "./clauseDiff"
+import { computeClauseChanges, ClauseDiffOptions } from "./clauseDiff"
 
 /**
- * Full analysis pipeline: clause diff + stageability of every change.
+ * Full analysis pipeline: clause diff + stageability + move detection.
  */
-export function analyze(oldProj: Projection, newProj: Projection): AnnotatedChange[] {
-  const changes = computeClauseChanges(oldProj.lines, newProj.lines)
-  return changes.map((change) => ({
+export function analyze(
+  oldProj: Projection,
+  newProj: Projection,
+  opts: ClauseDiffOptions = {}
+): AnnotatedChange[] {
+  const changes = computeClauseChanges(oldProj.lines, newProj.lines, opts)
+  const annotated = changes.map((change) => ({
     change,
     stageability: computeStageability(change, oldProj, newProj),
   }))
+  detectMoves(annotated, oldProj, newProj)
+  return annotated
+}
+
+const MOVE_SIMILARITY_THRESHOLD = 0.85
+const MOVE_MIN_CHARS = 20
+
+function detectMoves(
+  annotated: AnnotatedChange[],
+  oldProj: Projection,
+  newProj: Projection
+): void {
+  const deletions = annotated.filter(
+    (a) => a.change.kind === "deleted" && a.stageability.kind === "stageable"
+  )
+  const insertions = annotated.filter(
+    (a) => a.change.kind === "inserted" && a.stageability.kind === "stageable"
+  )
+
+  const delTexts = deletions.map((a) =>
+    blockText(oldProj.lines, a.change.oldStartIndex, a.change.oldEndIndex)
+  )
+  const insTexts = insertions.map((a) =>
+    blockText(newProj.lines, a.change.newStartIndex, a.change.newEndIndex)
+  )
+
+  const usedIns = new Set<number>()
+  for (let di = 0; di < deletions.length; di++) {
+    const dt = delTexts[di]
+    if (dt.length < MOVE_MIN_CHARS) continue
+    let bestSim = MOVE_SIMILARITY_THRESHOLD
+    let bestIi = -1
+    for (let ii = 0; ii < insertions.length; ii++) {
+      if (usedIns.has(ii)) continue
+      const it = insTexts[ii]
+      if (it.length < MOVE_MIN_CHARS) continue
+      const sim = moveBigramSimilarity(dt, it)
+      if (sim > bestSim) { bestSim = sim; bestIi = ii }
+    }
+    if (bestIi >= 0) {
+      const moveId = `move:${deletions[di].change.id}:${insertions[bestIi].change.id}`
+      deletions[di].change.moveId = moveId
+      insertions[bestIi].change.moveId = moveId
+      usedIns.add(bestIi)
+    }
+  }
+}
+
+function blockText(
+  lines: ProjectedLine[],
+  startIdx: number | null,
+  endIdx: number | null
+): string {
+  if (startIdx === null || endIdx === null) return ""
+  return lines
+    .slice(startIdx, endIdx + 1)
+    .filter((l) => l.kind !== "blank")
+    .map((l) => l.text)
+    .join(" ")
+}
+
+function moveBigramSimilarity(a: string, b: string): number {
+  if (a === b) return 1
+  if (a.length < 2 || b.length < 2) return 0
+  const toSet = (s: string) => {
+    const set = new Set<string>()
+    for (let i = 0; i < s.length - 1; i++) set.add(s.slice(i, i + 2))
+    return set
+  }
+  const sa = toSet(a)
+  const sb = toSet(b)
+  let overlap = 0
+  for (const bg of sa) if (sb.has(bg)) overlap++
+  return (2 * overlap) / (sa.size + sb.size)
 }
 
 /**

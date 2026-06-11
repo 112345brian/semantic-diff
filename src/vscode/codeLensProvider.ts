@@ -1,17 +1,20 @@
 import * as vscode from "vscode"
 import { Session, SessionChange } from "../session"
-import { SCHEME, filePathOf } from "./virtualDocumentProvider"
+import { SCHEME, filePathOf, sessionKeyOf } from "./virtualDocumentProvider"
+import { SessionStore } from "./sessionStore"
+
 
 /**
  * One CodeLens row per changed clause, shown on the new (right) side of the
  * diff. Deleted clauses anchor to the position in the new text where the
- * deletion happened.
+ * deletion happened. Read-only (historical) sessions show a summary label
+ * only — no staging actions.
  */
 export class SemanticStageCodeLensProvider implements vscode.CodeLensProvider {
   private emitter = new vscode.EventEmitter<void>()
   readonly onDidChangeCodeLenses = this.emitter.event
 
-  constructor(private getSession: (filePath: string) => Session | undefined) {}
+  constructor(private store: SessionStore) {}
 
   refresh(): void {
     this.emitter.fire()
@@ -20,14 +23,19 @@ export class SemanticStageCodeLensProvider implements vscode.CodeLensProvider {
   provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
     if (document.uri.scheme !== SCHEME || document.uri.authority !== "new") return []
     const filePath = filePathOf(document.uri)
-    const session = this.getSession(filePath)
+    const key = sessionKeyOf(document.uri)
+    const session = this.store.getByKey(key) ?? this.store.get(filePath)
     if (!session || !session.projectionEnabled) return []
+
+    // For book sessions the key is the rootDir; for regular sessions key === filePath.
+    const lensFilePath = key
 
     const lenses: vscode.CodeLens[] = []
     for (const sc of session.changes) {
-      const line = lensLine(sc, document)
-      const range = new vscode.Range(line, 0, line, 0)
-      for (const lens of lensesForChange(sc, filePath)) {
+      const line = session.aligned.changeLineMap.get(sc.change.id) ?? 0
+      const clamped = Math.max(0, Math.min(line, document.lineCount - 1))
+      const range = new vscode.Range(clamped, 0, clamped, 0)
+      for (const lens of lensesForChange(sc, session, lensFilePath, session.isReadOnly)) {
         lenses.push(new vscode.CodeLens(range, lens))
       }
     }
@@ -35,21 +43,34 @@ export class SemanticStageCodeLensProvider implements vscode.CodeLensProvider {
   }
 }
 
-function lensLine(sc: SessionChange, document: vscode.TextDocument): number {
-  const idx = sc.change.newStartIndex ?? sc.change.anchorNewIndex + 1
-  return Math.max(0, Math.min(idx, document.lineCount - 1))
-}
-
-function lensesForChange(sc: SessionChange, filePath: string): vscode.Command[] {
+function lensesForChange(sc: SessionChange, session: Session, filePath: string, readOnly: boolean): vscode.Command[] {
+  if (readOnly) {
+    const kind = sc.change.kind === "modified" ? "modified" :
+      sc.change.kind === "inserted" ? "inserted" : "deleted"
+    const moveTag = sc.change.moveId ? " (moved)" : ""
+    return [{ title: `$(diff) ${kind} clause${moveTag}`, command: "" }]
+  }
   const id = sc.change.id
+  const moveId = sc.change.moveId
+
+  // Move pair that hasn't been split: show move-specific actions.
+  if (moveId && session.isMoveActive(moveId)) {
+    if (sc.status === "ignored") {
+      return [
+        { title: "↕ Move ignored — Undo", command: "semanticStage.unignoreMove", arguments: [filePath, moveId] },
+      ]
+    }
+    const isSrcSide = sc.change.kind === "deleted"
+    return [
+      { title: isSrcSide ? "↕ Moved from here — Stage move" : "↕ Moved here — Stage move", command: "semanticStage.stageMove", arguments: [filePath, moveId] },
+      { title: "Split", command: "semanticStage.splitMove", arguments: [filePath, moveId] },
+      { title: "Ignore", command: "semanticStage.ignoreMove", arguments: [filePath, moveId] },
+    ]
+  }
 
   if (sc.status === "ignored") {
     return [
-      {
-        title: "Ignored — Undo",
-        command: "semanticStage.unignoreClause",
-        arguments: [filePath, id],
-      },
+      { title: "Ignored — Undo", command: "semanticStage.unignoreClause", arguments: [filePath, id] },
     ]
   }
 

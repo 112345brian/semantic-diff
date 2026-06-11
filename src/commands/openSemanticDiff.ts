@@ -29,6 +29,29 @@ export async function openSemanticDiff(store: SessionStore, arg?: unknown): Prom
     vscode.window.showErrorMessage(`Semantic Stage: ${err.message ?? err}`)
     return
   }
+  await ensureDiffSettings()
   const title = `${path.basename(filePath)} (Semantic Diff: index ↔ working tree)`
   await vscode.commands.executeCommand("vscode.diff", oldUri(filePath), newUri(filePath), title)
+}
+
+/**
+ * Ensures the diff editor is in side-by-side mode with word wrap on.
+ * Both are important for prose review: side-by-side shows old and new
+ * simultaneously; word wrap keeps long clauses readable without horizontal
+ * scrolling.
+ */
+export async function ensureDiffSettings(): Promise<void> {
+  const config = vscode.workspace.getConfiguration()
+  if (config.get("diffEditor.renderSideBySide") !== true) {
+    await config.update("diffEditor.renderSideBySide", true, vscode.ConfigurationTarget.Global)
+  }
+  if (config.get("diffEditor.wordWrap") !== "on") {
+    await config.update("diffEditor.wordWrap", "on", vscode.ConfigurationTarget.Global)
+  }
+}
+
+export async function toggleSplitPane(): Promise<void> {
+  const config = vscode.workspace.getConfiguration()
+  const current = config.get<boolean>("diffEditor.renderSideBySide") ?? true
+  await config.update("diffEditor.renderSideBySide", !current, vscode.ConfigurationTarget.Global)
 }

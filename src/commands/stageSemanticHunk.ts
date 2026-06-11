@@ -1,6 +1,6 @@
 import * as vscode from "vscode"
 import { SessionStore } from "../vscode/sessionStore"
-import { SCHEME, filePathOf } from "../vscode/virtualDocumentProvider"
+import { SCHEME, filePathOf, sessionKeyOf } from "../vscode/virtualDocumentProvider"
 import { Session, SessionChange } from "../session"
 import { applyEdits, buildPatch } from "../git/patchBuilder"
 import { applyCachedPatch } from "../git/applyPatch"
@@ -20,6 +20,19 @@ export async function stageClause(
   filePath: string,
   changeId: string
 ): Promise<void> {
+  // filePath may be a rootDir key for book sessions.
+  const book = store.getBookByKey(filePath)
+  if (book) {
+    try {
+      await book.stageClause(changeId)
+      await store.refreshBook(book.rootDir)
+      vscode.window.setStatusBarMessage("Semantic Stage: clause staged", 3000)
+    } catch (err: any) {
+      vscode.window.showErrorMessage(`Semantic Stage: ${err.message ?? err}`)
+    }
+    return
+  }
+
   const session = store.get(filePath)
   if (!session) return
   const sc = session.findChange(changeId)
@@ -51,8 +64,9 @@ export async function stageHunkAtCursor(store: SessionStore): Promise<void> {
     vscode.window.showWarningMessage("Semantic Stage: place the cursor in a semantic diff view first.")
     return
   }
+  const key = sessionKeyOf(editor.document.uri)
   const filePath = filePathOf(editor.document.uri)
-  const session = store.get(filePath)
+  const session = store.getByKey(key) ?? store.get(filePath)
   if (!session) return
   const line = editor.selection.active.line
   const onNewSide = editor.document.uri.authority === "new"
@@ -62,7 +76,7 @@ export async function stageHunkAtCursor(store: SessionStore): Promise<void> {
     vscode.window.showInformationMessage("Semantic Stage: no changed clause at the cursor.")
     return
   }
-  await stageClause(store, filePath, match.change.id)
+  await stageClause(store, key, match.change.id)
 }
 
 function coversLine(sc: SessionChange, line: number, onNewSide: boolean): boolean {
@@ -75,12 +89,32 @@ function coversLine(sc: SessionChange, line: number, onNewSide: boolean): boolea
 export async function stageAll(store: SessionStore, arg?: unknown): Promise<void> {
   const editor = vscode.window.activeTextEditor
   let filePath: string | undefined
-  if (editor?.document.uri.scheme === SCHEME) filePath = filePathOf(editor.document.uri)
-  else if (editor?.document.uri.scheme === "file") filePath = editor.document.uri.fsPath
-  if (!filePath) {
+  let sessionKey: string | undefined
+  if (editor?.document.uri.scheme === SCHEME) {
+    filePath = filePathOf(editor.document.uri)
+    sessionKey = sessionKeyOf(editor.document.uri)
+  } else if (editor?.document.uri.scheme === "file") {
+    filePath = editor.document.uri.fsPath
+    sessionKey = filePath
+  }
+  if (!filePath || !sessionKey) {
     vscode.window.showWarningMessage("Semantic Stage: open a semantic diff first.")
     return
   }
+
+  // Book session: stage all via BookSession to get per-file routing.
+  const book = store.getBookByKey(sessionKey)
+  if (book) {
+    try {
+      const count = await book.stageAll()
+      await store.refreshBook(book.rootDir)
+      vscode.window.showInformationMessage(`Semantic Stage: staged ${count} clause change(s).`)
+    } catch (err: any) {
+      vscode.window.showErrorMessage(`Semantic Stage: ${err.message ?? err}`)
+    }
+    return
+  }
+
   const session = store.get(filePath) ?? (await store.getOrCreate(filePath))
 
   const stageables = session.stageableChanges()
@@ -133,6 +167,100 @@ async function stageSequentially(
     await store.refresh(filePath)
   }
   return staged
+}
+
+export async function stageAllFiles(store: SessionStore): Promise<void> {
+  const sessions = store.allWorkingSessions()
+  if (sessions.length === 0) {
+    vscode.window.showInformationMessage("Semantic Stage: no open sessions.")
+    return
+  }
+  let totalStaged = 0
+  let totalSkipped = 0
+  for (const session of sessions) {
+    const stageables = session.stageableChanges()
+    const skipped = session.changes.filter(
+      (c) => c.status === "pending" && c.stageability.kind === "unsafe"
+    ).length
+    totalSkipped += skipped
+    if (stageables.length === 0) continue
+    try {
+      const edits = stageables.map(
+        (c) => (c.stageability as { kind: "stageable"; edit: SourceEdit }).edit
+      )
+      await stageEdits(session, edits)
+      totalStaged += stageables.length
+      await store.refresh(session.filePath)
+    } catch {
+      for (const sc of stageables) {
+        try {
+          await stageEdits(session, [(sc.stageability as { kind: "stageable"; edit: SourceEdit }).edit])
+          totalStaged++
+          await store.refresh(session.filePath)
+        } catch { /* skip */ }
+      }
+    }
+  }
+  const msg = totalSkipped > 0
+    ? `Semantic Stage: staged ${totalStaged} clause change(s) across ${sessions.length} file(s); ${totalSkipped} unsafe skipped.`
+    : `Semantic Stage: staged ${totalStaged} clause change(s) across ${sessions.length} file(s).`
+  vscode.window.showInformationMessage(msg)
+}
+
+export async function stageMove(
+  store: SessionStore,
+  filePath: string,
+  moveId: string
+): Promise<void> {
+  // filePath may be a rootDir key for book sessions.
+  const book = store.getBookByKey(filePath)
+  if (book) {
+    const pair = book.findChangesForMove(moveId)
+    if (!pair) {
+      vscode.window.showWarningMessage("Semantic Stage: move pair not found; diff may have been refreshed.")
+      await store.refreshBook(book.rootDir)
+      return
+    }
+    const [a, b] = pair
+    if (a.stageability.kind !== "stageable" || b.stageability.kind !== "stageable") {
+      vscode.window.showWarningMessage("Semantic Stage: move cannot be staged — edit spans a file boundary.")
+      return
+    }
+    try {
+      await book.stageClause(a.change.id)
+      await book.stageClause(b.change.id)
+      await store.refreshBook(book.rootDir)
+      vscode.window.setStatusBarMessage("Semantic Stage: move staged", 3000)
+    } catch (err: any) {
+      vscode.window.showErrorMessage(`Semantic Stage: ${err.message ?? err}`)
+    }
+    return
+  }
+
+  const session = store.get(filePath)
+  if (!session) return
+  const pair = session.findChangesForMove(moveId)
+  if (!pair) {
+    vscode.window.showWarningMessage("Semantic Stage: move pair not found; diff may have been refreshed.")
+    await store.refresh(filePath)
+    return
+  }
+  const [a, b] = pair
+  if (a.stageability.kind !== "stageable") {
+    vscode.window.showWarningMessage(`Semantic Stage: ${a.stageability.reason}`)
+    return
+  }
+  if (b.stageability.kind !== "stageable") {
+    vscode.window.showWarningMessage(`Semantic Stage: ${b.stageability.reason}`)
+    return
+  }
+  try {
+    await stageEdits(session, [a.stageability.edit, b.stageability.edit])
+    await store.refresh(filePath)
+    vscode.window.setStatusBarMessage("Semantic Stage: move staged", 3000)
+  } catch (err: any) {
+    vscode.window.showErrorMessage(`Semantic Stage: ${err.message ?? err}`)
+  }
 }
 
 /** Opens VS Code's native index↔working-tree diff for the file. */

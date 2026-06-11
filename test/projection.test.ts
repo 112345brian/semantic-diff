@@ -31,6 +31,23 @@ test("does not break inside citation brackets", () => {
   assert.ok(text.slice(spans[0].start, spans[0].end).includes("[@doe2020, p. 4]"))
 })
 
+test("breaks before no-comma conjunction when followed by a subject pronoun", () => {
+  const sentence =
+    "I was driving down from the highways onto the trails and into the valley and the whole time I never seen a car coming my direction."
+  const spans = splitClauses(sentence, 60)
+  assert.equal(spans.length, 2)
+  // First clause ends before "and the whole time"
+  assert.ok(sentence.slice(spans[0].start, spans[0].end).includes("into the valley"))
+  // Second clause starts with the conjunction
+  assert.ok(sentence.slice(spans[1].start, spans[1].end).startsWith("and the whole time"))
+})
+
+test("does not break 'X and Y' noun/prepositional phrases", () => {
+  // "and into the valley" is a prepositional phrase, not a new clause — no pronoun follows
+  const sentence = "I went down the trail and into the valley."
+  assert.equal(splitClauses(sentence, 20).length, 1)
+})
+
 test("breaks before coordinating conjunction only when the clause is long", () => {
   const long =
     "The committee deliberated for several hours about the unusual proposal, but ultimately it decided to wait."

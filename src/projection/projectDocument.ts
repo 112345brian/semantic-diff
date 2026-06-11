@@ -102,7 +102,8 @@ function scanLines(text: string): SourceLine[] {
   return lines
 }
 
-const FENCE_RE = /^ {0,3}(```|~~~)/
+const FENCE_RE = /^ {0,3}(```+|~~~+|:::+)/
+const MATH_BLOCK_RE = /^ {0,3}\$\$\s*$/
 const HEADING_RE = /^ {0,3}#{1,6}\s/
 const BLOCKQUOTE_RE = /^ {0,3}>/
 const LIST_ITEM_RE = /^ {0,5}([-*+]|\d{1,9}[.)])\s/
@@ -139,16 +140,32 @@ function segment(lines: SourceLine[], text: string): Segment[] {
   }
 
   let inFence: string | null = null
+  let inMathBlock = false
   let listDepth = false
 
   while (i < lines.length) {
     const line = lines[i]
     const t = line.text
 
+    if (inMathBlock) {
+      segments.push({ type: "verbatim", line })
+      if (MATH_BLOCK_RE.test(t)) inMathBlock = false
+      i++
+      continue
+    }
+
     if (inFence) {
       segments.push({ type: "verbatim", line })
       const m = FENCE_RE.exec(t)
       if (m && m[1][0] === inFence[0]) inFence = null
+      i++
+      continue
+    }
+
+    if (MATH_BLOCK_RE.test(t)) {
+      flushParagraph()
+      inMathBlock = true
+      segments.push({ type: "verbatim", line })
       i++
       continue
     }

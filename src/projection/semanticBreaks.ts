@@ -48,6 +48,26 @@ const ABBREVIATIONS = new Set([
 
 const CONJUNCTION_RE = /^,([ \t]+)(and|but|or|nor|yet|so)(?=[\s])/
 
+/**
+ * Matches a coordinating conjunction not preceded by a comma, with the
+ * leading whitespace as the separator group. Used for compound sentences
+ * like "…long clause and I did a thing" where the comma is omitted.
+ */
+const NO_COMMA_CONJ_RE = /^([ \t]+)(and|but|or|nor|yet|so)([ \t]+)/i
+
+/**
+ * Subject pronouns that, when appearing in the first few words after a
+ * conjunction, indicate a new independent clause rather than a coordinated
+ * phrase or prepositional attachment.
+ */
+const SUBJECT_PRONOUN_RE = /^(I|you|he|she|we|they|it)$/i
+
+function looksLikeNewClause(text: string, startIdx: number): boolean {
+  const ahead = text.slice(startIdx, startIdx + 60)
+  const words = ahead.split(/\s+/).filter(Boolean).slice(0, 6)
+  return words.some((w) => SUBJECT_PRONOUN_RE.test(w))
+}
+
 function precedingWord(text: string, periodIndex: number): string {
   let i = periodIndex - 1
   while (i >= 0 && /[A-Za-z.]/.test(text[i])) i--
@@ -135,6 +155,24 @@ export function splitClauses(
           i = sepEnd
           clauseStart = sepEnd
           continue
+        }
+      } else if (ch === " " || ch === "\t") {
+        // No-comma compound clause: "…long clause and I did a thing".
+        // Only fires when the subject-pronoun check confirms a new clause
+        // follows, so "X and Y" noun phrases don't get split.
+        const m = NO_COMMA_CONJ_RE.exec(text.slice(i))
+        if (m && i - clauseStart >= conjunctionMinLength) {
+          const afterConj = i + m[0].length
+          if (looksLikeNewClause(text, afterConj)) {
+            // Separator is the leading whitespace only; the conjunction
+            // starts the new clause.
+            const sepStart = i
+            const sepEnd = i + m[1].length
+            breaks.push([sepStart, sepEnd])
+            i = sepEnd
+            clauseStart = sepEnd
+            continue
+          }
         }
       }
     }

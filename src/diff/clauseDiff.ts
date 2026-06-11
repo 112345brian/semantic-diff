@@ -1,6 +1,22 @@
 import { ClauseChange } from "../types/diff"
 import { ProjectedLine } from "../types/projection"
 
+export interface ClauseDiffOptions {
+  /**
+   * When true, changes to ordered-list sequence numbers are not treated as
+   * meaningful differences. "1. item" and "3. item" compare equal; only the
+   * item text matters.
+   */
+  ignoreListNumbering?: boolean
+}
+
+/** Normalizes an ordered-list number to a placeholder for comparison. */
+function normalizeListNumber(text: string, ignore: boolean): string {
+  if (!ignore) return text
+  // Matches "1. " / "10. " / "1) " / "10) " at the start of a line.
+  return text.replace(/^\d+([.)]) /, "N$1 ")
+}
+
 export type LineOp =
   | { type: "equal"; oldIndex: number; newIndex: number }
   | { type: "delete"; oldIndex: number }
@@ -88,11 +104,13 @@ export function diffLines(oldLines: string[], newLines: string[]): LineOp[] {
  */
 export function computeClauseChanges(
   oldLines: ProjectedLine[],
-  newLines: ProjectedLine[]
+  newLines: ProjectedLine[],
+  opts: ClauseDiffOptions = {}
 ): ClauseChange[] {
+  const ignoreNum = opts.ignoreListNumbering ?? false
   const ops = diffLines(
-    oldLines.map((l) => l.text),
-    newLines.map((l) => l.text)
+    oldLines.map((l) => normalizeListNumber(l.text, ignoreNum)),
+    newLines.map((l) => normalizeListNumber(l.text, ignoreNum))
   )
 
   const changes: ClauseChange[] = []

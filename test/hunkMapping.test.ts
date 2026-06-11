@@ -2,6 +2,7 @@ import { test } from "node:test"
 import assert from "node:assert/strict"
 import { projectDocument } from "../src/projection/projectDocument"
 import { analyze } from "../src/diff/hunkMapping"
+import { ClauseDiffOptions } from "../src/diff/clauseDiff"
 import { applyEdits } from "../src/git/patchBuilder"
 import { AnnotatedChange } from "../src/types/diff"
 
@@ -147,6 +148,27 @@ test("joining two paragraphs is a stageable change", () => {
   const { changes } = analyzeTexts(oldText, newText)
   assert.equal(changes.length, 1)
   assert.equal(stage(oldText, changes[0]), newText)
+})
+
+test("renumbering an ordered list produces no changes when ignoreListNumbering is true", () => {
+  const opts: ClauseDiffOptions = { ignoreListNumbering: true }
+  const oldText = "1. First item\n2. Second item\n3. Third item\n"
+  const newText = "2. First item\n3. Second item\n4. Third item\n"
+  const oldProj = projectDocument("t.md", oldText)
+  const newProj = projectDocument("t.md", newText)
+  const changes = analyze(oldProj, newProj, opts)
+  assert.equal(changes.length, 0)
+})
+
+test("list item text change still surfaces when ignoreListNumbering is true", () => {
+  const opts: ClauseDiffOptions = { ignoreListNumbering: true }
+  const oldText = "1. First item\n2. Second item\n"
+  const newText = "1. First item\n2. Second item, revised\n"
+  const oldProj = projectDocument("t.md", oldText)
+  const newProj = projectDocument("t.md", newText)
+  const changes = analyze(oldProj, newProj, opts)
+  assert.equal(changes.length, 1)
+  assert.equal(changes[0].change.kind, "modified")
 })
 
 test("insertion at the top of the file", () => {
