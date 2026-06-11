@@ -1,0 +1,57 @@
+{
+  "name": "semantic-stage",
+  "displayName": "Semantic Stage",
+  "description": "Clause-based semantic diff and staging for prose in git. The meaningful unit of change is the clause, not the line.",
+  "version": "0.1.0",
+  "publisher": "semantic-stage",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "SCM Providers",
+    "Other"
+  ],
+  "main": "./out/src/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      {
+        "command": "semanticStage.openDiff",
+        "title": "Semantic Stage: Open Semantic Diff"
+      },
+      {
+        "command": "semanticStage.stageHunk",
+        "title": "Semantic Stage: Stage Selected Semantic Hunk"
+      },
+      {
+        "command": "semanticStage.stageAll",
+        "title": "Semantic Stage: Stage All Semantic Hunks"
+      },
+      {
+        "command": "semanticStage.toggleProjection",
+        "title": "Semantic Stage: Toggle Semantic Projection"
+      }
+    ],
+    "configuration": {
+      "title": "Semantic Stage",
+      "properties": {
+        "semanticStage.conjunctionMinLength": {
+          "type": "number",
+          "default": 60,
+          "description": "Minimum clause length (characters) before a break is inserted ahead of a coordinating conjunction."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -w -p .",
+    "test": "tsc -p . && node --test \"out/test/*.test.js\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}
